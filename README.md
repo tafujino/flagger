@@ -260,4 +260,7 @@ All WDLs are uploaded to Dockstore for easier import into platforms like Terra o
 Each of these components has their own color when they are shown in the IGV or the UCSC Genome Browser.
 
 ## Publications
+
+Asri, M., Eizenga, J. M., Hebbar, P., Real, T. D., Lucas, J., Loucks, H., Calicchio, A., Diekhans, M., Eichler, E. E., Salama, S., Miga, K. H., & Paten, B. (2026). Evaluating genome assemblies with HMM-Flagger. [https://www.biorxiv.org/content/10.64898/2026.02.27.708355v1](https://www.biorxiv.org/content/10.64898/2026.02.27.708355v1)
+
 Liao, Wen-Wei, Mobin Asri, Jana Ebler, Daniel Doerr, Marina Haukness, Glenn Hickey, Shuangjia Lu et al. "[A draft human pangenome reference.](https://www.nature.com/articles/s41586-023-05896-x)" Nature 617, no. 7960 (2023): 312-324.
