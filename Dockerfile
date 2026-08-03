@@ -7,10 +7,14 @@ RUN apt-get update && apt-get install -y build-essential python3-dev autoconf au
 
 
 #install Java
+# The original oracle.com/.../latest/... URL this Dockerfile used to reference no longer
+# resolves (404); the Oracle "latest" JDK link has since moved past JDK 23. Pinning to a
+# specific Eclipse Temurin (Adoptium) build instead, since that URL won't silently rot the
+# way "latest" links do.
 RUN cd /home/apps && \
-    wget https://download.oracle.com/java/23/latest/jdk-23_linux-x64_bin.tar.gz && \
-    tar -xvzf jdk-23_linux-x64_bin.tar.gz
-ENV PATH=$PATH:/home/apps/jdk-23.0.1/bin
+    wget https://github.com/adoptium/temurin23-binaries/releases/download/jdk-23.0.2%2B7/OpenJDK23U-jdk_x64_linux_hotspot_23.0.2_7.tar.gz && \
+    tar -xvzf OpenJDK23U-jdk_x64_linux_hotspot_23.0.2_7.tar.gz
+ENV PATH=$PATH:/home/apps/jdk-23.0.2+7/bin
 
 #intstall IGV
 RUN cd /home/apps && \
