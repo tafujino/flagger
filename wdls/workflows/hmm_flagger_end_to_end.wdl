@@ -66,7 +66,7 @@ workflow HMMFlaggerEndToEnd{
         flaggerMinimumBlockLenArray : "Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. (Default: [0,0,0])"
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
         flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 16)"
-        flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.2.0)"
+        flaggerDockerImage : "Docker image for HMM-Flagger (Default : quay.io/tafujino/flagger:v1.2.0-augment-coverage-fix, a rebuild of upstream mobinasri/flagger:v1.2.0 from this fork's fix-augment-coverage-by-labels-crash branch -- see that branch's commit history for the augment_coverage_by_labels gzbuffer fix)"
         augmentCoverageThreadCount : "Number of threads for augmentCoverageByLabels/augmentCoverageByLabelsConservative (Default : 8, matching the task's own upstream default). augment_coverage_by_labels's multithreaded chunk parser had a bug that could corrupt memory or fail entirely at --threads>1 (a large forward gzseek() combined with zlib's default 8KB gzbuffer made gzgets() spuriously fail well before the real end of the .cov.gz stream; see internal fork commit fixing track_reader.c, and upstream https://github.com/mobinasri/flagger/issues/44 and related reports). Fixed at the C level in this fork's docker image, so the full thread count is safe again. Lower this only if you suspect a regression."
         truthBedForMisassemblies : "(Optional) A BED file containing the coordinates and labels of the truth misassemblies. It can be useful when the misassemblies are simulated (e.g. with Falsifier) (Default: None)"
     }
@@ -100,7 +100,7 @@ workflow HMMFlaggerEndToEnd{
         Array[Int] flaggerMinimumBlockLenArray = []
         Int flaggerMemSize=32
         Int flaggerThreadCount=16
-        String flaggerDockerImage="mobinasri/flagger:v1.2.0"
+        String flaggerDockerImage="quay.io/tafujino/flagger:v1.2.0-augment-coverage-fix"
         Int augmentCoverageThreadCount=8
 
         File? sexBed
