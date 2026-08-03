@@ -67,6 +67,7 @@ workflow HMMFlaggerEndToEnd{
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
         flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 16)"
         flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.2.0)"
+        augmentCoverageThreadCount : "Number of threads for augmentCoverageByLabels/augmentCoverageByLabelsConservative (Default : 1). Defaults to 1 because augment_coverage_by_labels's multithreaded chunk parser has a known, reproducible memory-safety bug under --threads>1 (see https://github.com/mobinasri/flagger/issues/44 and related reports); raise this only once that upstream issue is fixed."
         truthBedForMisassemblies : "(Optional) A BED file containing the coordinates and labels of the truth misassemblies. It can be useful when the misassemblies are simulated (e.g. with Falsifier) (Default: None)"
     }
     input{
@@ -100,6 +101,7 @@ workflow HMMFlaggerEndToEnd{
         Int flaggerMemSize=32
         Int flaggerThreadCount=16
         String flaggerDockerImage="mobinasri/flagger:v1.2.0"
+        Int augmentCoverageThreadCount=1
 
         File? sexBed
         File? SDBed
@@ -387,6 +389,7 @@ workflow HMMFlaggerEndToEnd{
             predictionBed = labelPrediction.labeledBed,
             includeContigListText = includeContigListText,
             suffix="augmented",
+            threadCount = augmentCoverageThreadCount,
             dockerImage = flaggerDockerImage,
     }
 
@@ -434,6 +437,7 @@ workflow HMMFlaggerEndToEnd{
                 predictionBed = labelPredictionConservative.labeledBed,
                 includeContigListText = includeContigListText,
                 suffix="augmented.conservative",
+                threadCount = augmentCoverageThreadCount,
                 dockerImage = flaggerDockerImage,
          }
          # make a summary table for conservative calls
@@ -542,7 +546,7 @@ task decomposeCntrBed {
         File cntrBed
         Array[String] patterns = ["hsat1A", "hsat1B", "hsat2", "hsat3", "active_hor", "bsat"]
         # runtime configurations
-        Int memSize=4
+        Int memSize=8
         Int threadCount=2
         Int diskSize=32
         String dockerImage="mobinasri/flagger:v1.2.0"
@@ -600,7 +604,7 @@ task getFinalBed {
         File hap1Fai
         File hap2Fai
         # runtime configurations
-        Int memSize=4
+        Int memSize=8
         Int threadCount=2
         Int diskSize=32
         String dockerImage="mobinasri/flagger:v0.4.0"

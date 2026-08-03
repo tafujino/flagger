@@ -8,7 +8,7 @@ task subtract {
         File secondBed
         String outputPrefix = "subtract"
         # runtime configurations
-        Int memSize=4
+        Int memSize=8
         Int threadCount=2
         Int diskSize=32
         String dockerImage="mobinasri/bio_base:v0.4.0"

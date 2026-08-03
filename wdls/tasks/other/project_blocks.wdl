@@ -46,7 +46,7 @@ task project {
         # should be like "${original_contig_name}:${start}-${end}"
         Boolean isAssemblySplit=false
         # runtime configurations
-        Int memSize=4
+        Int memSize=8
         Int threadCount=8
         Int diskSize=32
         String dockerImage="mobinasri/flagger:v1.2.0"

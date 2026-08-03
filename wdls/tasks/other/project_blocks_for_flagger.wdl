@@ -60,6 +60,7 @@ workflow runProjectBlocksForFlagger{
                 mode = "ref2asm",
                 mergingMargin = mergingMargin,
                 isAssemblySplit = isAssemblySplit,
+                memSize = 32,
         }
     }
 
@@ -74,6 +75,7 @@ workflow runProjectBlocksForFlagger{
                 mode = "ref2asm",
                 mergingMargin = 1,
                 isAssemblySplit = isAssemblySplit,
+                memSize = 32,
         }
     }
     
@@ -130,6 +132,7 @@ workflow runProjectBlocksForFlagger{
                 mode = "ref2asm",
                 mergingMargin = 1,
                 isAssemblySplit = isAssemblySplit,
+                memSize = 32,
        }
     }
 
@@ -164,7 +167,7 @@ task concatFiles {
         String outputName
         String extension
         # runtime configurations
-        Int memSize=4
+        Int memSize=8
         Int threadCount=2
         Int diskSize=128
         String dockerImage="mobinasri/bio_base:v0.4.0"
