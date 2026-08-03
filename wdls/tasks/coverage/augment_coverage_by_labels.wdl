@@ -18,11 +18,7 @@ task augmentCoverageByLabels{
         String suffix="augmented"
         File? includeContigListText
         # runtime configurations
-        # Even at --threads 1, the (unused by this tool, but still allocated) per-chunk
-        # windowRegionArray/windowTruthArray/windowPredictionArray scaffolding in
-        # ChunksCreator_constructFromCov pushes real peak vmem slightly past 32GB on this
-        # genome (observed ~35.5GB); keep real headroom above that baseline.
-        Int memSize=48
+        Int memSize=32
         Int threadCount=8
         Int diskSize=ceil(size(coverage, "GB"))  + 64
         String dockerImage="mobinasri/flagger:v1.2.0"
