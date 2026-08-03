@@ -46,10 +46,14 @@ RUN apt-get install -y tabix
 ENV LANG="C.UTF-8" 
 RUN pip3 install cython && pip3 install whatshap
 
+# git clone https://sourceware.org/git/valgrind.git used to be here, but sourceware.org's
+# git-over-https endpoint started returning HTTP 429 (rate limited) during this fork's build.
+# A versioned release tarball over plain HTTP sidesteps that (and pins a specific version
+# instead of whatever HEAD happened to be).
 RUN cd /home/apps && \
-     git clone https://sourceware.org/git/valgrind.git && \
-     cd valgrind && \
-     ./autogen.sh  && \
+     wget https://sourceware.org/pub/valgrind/valgrind-3.24.0.tar.bz2 && \
+     tar -xvjf valgrind-3.24.0.tar.bz2 && \
+     cd valgrind-3.24.0 && \
      ./configure && \
      make && \
      make install
