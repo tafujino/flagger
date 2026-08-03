@@ -18,7 +18,16 @@ task augmentCoverageByLabels{
         String suffix="augmented"
         File? includeContigListText
         # runtime configurations
-        Int memSize=32
+        # ChunksCreator_constructFromCov allocates windowRegionArray/windowTruthArray/
+        # windowPredictionArray sized to windowLen (== chunkCanonicalLen here) per chunk;
+        # these are otherwise-unused scaffolding, but a targeted attempt to shrink them
+        # (see internal fork history) surfaced a pre-existing heap overflow elsewhere in
+        # this shared submodule (glibc's "free(): invalid next size" in the chunks_creator/
+        # chunk_iterator tests and bam2cov's own test suite) that the huge buffers had been
+        # silently absorbing. Reverted that; carrying real memory headroom here instead.
+        # Even at --threads 1, real peak vmem on a real diploid human genome has been
+        # observed at ~35.5GB, already over the previous 32GB default.
+        Int memSize=48
         Int threadCount=8
         Int diskSize=ceil(size(coverage, "GB"))  + 64
         String dockerImage="mobinasri/flagger:v1.2.0"
