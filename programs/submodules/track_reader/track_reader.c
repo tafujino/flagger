@@ -471,6 +471,11 @@ void *TrackReader_openFile(char *filePath, TrackFileFormat format) {
             fprintf(stderr, "[Error] Unable to open %s\n", filePath);
             exit(EXIT_FAILURE);
         }
+        // zlib's default internal buffer is 8KB. Callers like CovFastReaderPerThread_parseBlocks
+        // gzseek() forward by tens of megabytes per chunk; with the 8KB default this has been
+        // observed to make gzgets() return Z_NULL (gzerror empty, not at true EOF) well before
+        // the real end of the stream. A much larger buffer avoids this.
+        gzbuffer(gzReader, 1 << 20);
         gzFile *gzReaderPtr = malloc(sizeof(gzFile));
         gzReaderPtr[0] = gzReader;
         fileReaderPtr = gzReaderPtr;

@@ -60,9 +60,14 @@ Chunk *Chunk_constructWithAllocatedSeq(int chunkCanonicalLen, int windowLen, int
     chunk->windowSumCoverageHighMapq = 0.0;
     chunk->windowSumCoverageHighClip = 0.0;
     chunk->windowAnnotationFlag = 0ULL;
-    chunk->windowRegionArray = (int *) malloc(windowLen * sizeof(int));
-    chunk->windowTruthArray = (int *) malloc(windowLen * sizeof(int));
-    chunk->windowPredictionArray = (int *) malloc(windowLen * sizeof(int));
+    // windowRegionArray/windowTruthArray/windowPredictionArray are dead: no code anywhere
+    // in this codebase reads or writes them (grep confirms). Callers pass windowLen ==
+    // chunkCanonicalLen (e.g. augment_coverage_by_labels), which used to allocate ~3 *
+    // windowLen * 4 bytes per chunk here for nothing -- summed over hundreds of
+    // genome-scale chunks this reached tens to hundreds of GB of pointless virtual memory.
+    chunk->windowRegionArray = (int *) malloc(1 * sizeof(int));
+    chunk->windowTruthArray = (int *) malloc(1 * sizeof(int));
+    chunk->windowPredictionArray = (int *) malloc(1 * sizeof(int));
     chunk->fileOffset = 0;
     chunk->startOnlyMode = false;
     return chunk;
