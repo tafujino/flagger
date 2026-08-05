@@ -75,6 +75,24 @@ int getFirstIndexWithNonZeroBitFromRight(int32_t a) {
     return -1;
 }
 
+void *safeMalloc(size_t size) {
+    void *ptr = malloc(size);
+    if (ptr == NULL) {
+        fprintf(stderr, "[Error] malloc(%zu) failed (out of memory)\n", size);
+        exit(EXIT_FAILURE);
+    }
+    return ptr;
+}
+
+void *safeRealloc(void *ptr, size_t size) {
+    void *newPtr = realloc(ptr, size);
+    if (newPtr == NULL) {
+        fprintf(stderr, "[Error] realloc(%zu) failed (out of memory)\n", size);
+        exit(EXIT_FAILURE);
+    }
+    return newPtr;
+}
+
 char *copyString(char *str) {
     char *copy = (char *) malloc(strlen(str) + 1);
     strcpy(copy, str);
@@ -476,10 +494,10 @@ int minIntArray(int *a, int len) {
 }
 
 Splitter *Splitter_construct(char *str, char delimiter) {
-    Splitter *splitter = malloc(sizeof(Splitter));
-    splitter->str = malloc((strlen(str) + 1) * sizeof(char));
+    Splitter *splitter = safeMalloc(sizeof(Splitter));
+    splitter->str = safeMalloc((strlen(str) + 1) * sizeof(char));
     strcpy(splitter->str, str);
-    splitter->token = malloc((strlen(str) + 1) * sizeof(char));
+    splitter->token = safeMalloc((strlen(str) + 1) * sizeof(char));
     splitter->delimiter = delimiter;
     splitter->offset = 0;
     splitter->finished = false;
@@ -538,7 +556,7 @@ int *Splitter_getIntArray(char *str, char delimiter, int *arraySize) {
     int i = 0;
     int *intArray = NULL;
     while ((token = Splitter_getToken(splitter)) != NULL) {
-        intArray = (int *) realloc(intArray, (i + 1) * sizeof(int));
+        intArray = (int *) safeRealloc(intArray, (i + 1) * sizeof(int));
         intArray[i] = atoi(token);
         i++;
     }
@@ -553,7 +571,7 @@ double *Splitter_getDoubleArray(char *str, char delimiter, int *arraySize) {
     int i = 0;
     double *doubleArray = NULL;
     while ((token = Splitter_getToken(splitter)) != NULL) {
-        doubleArray = (double *) realloc(doubleArray, (i + 1) * sizeof(double));
+        doubleArray = (double *) safeRealloc(doubleArray, (i + 1) * sizeof(double));
         doubleArray[i] = atof(token);
         i++;
     }

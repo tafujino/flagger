@@ -43,7 +43,7 @@ void TrackReader_setCtg(TrackReader *trackReader, const char *ctgName) {
 
 stList *TrackReader_parseHeaderLines(TrackReader *trackReader) {
     stList *headerLines = stList_construct3(0, free);
-    char *line = malloc(LINE_MAX_SIZE);
+    char *line = safeMalloc(LINE_MAX_SIZE);
     ssize_t read;
     // set pointer to the start of the file
     TrackReader_setFilePosition(trackReader, 0);
@@ -56,7 +56,7 @@ stList *TrackReader_parseHeaderLines(TrackReader *trackReader) {
 }
 
 CoverageHeader *CoverageHeader_construct(char *filePath) {
-    CoverageHeader *header = malloc(sizeof(CoverageHeader));
+    CoverageHeader *header = safeMalloc(sizeof(CoverageHeader));
 
     header->numberOfAnnotations = 0;
     header->annotationNames = stList_construct3(0, free);
@@ -357,7 +357,7 @@ void CoverageHeader_updateRegionCoverages(CoverageHeader *header) {
         header->regionCoverages = NULL;
         return;
     }
-    header->regionCoverages = (int *) malloc(header->numberOfRegions * sizeof(int));
+    header->regionCoverages = (int *) safeMalloc(header->numberOfRegions * sizeof(int));
     stList *headerLines = header->headerLines;
     char *token;
     int numberOfParsedCoverages = 0;
@@ -486,7 +486,7 @@ void *TrackReader_openFile(char *filePath, TrackFileFormat format) {
         // observed to make gzgets() return Z_NULL (gzerror empty, not at true EOF) well before
         // the real end of the stream. A much larger buffer avoids this.
         gzbuffer(gzReader, 1 << 20);
-        gzFile *gzReaderPtr = malloc(sizeof(gzFile));
+        gzFile *gzReaderPtr = safeMalloc(sizeof(gzFile));
         gzReaderPtr[0] = gzReader;
         fileReaderPtr = gzReaderPtr;
     } else {
@@ -531,7 +531,7 @@ int TrackReader_readLine(TrackReader *trackReader, char **linePtr, int maxSize) 
 }
 
 TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, stHash *contigLengthTable, bool zeroBasedCoors) {
-    TrackReader *trackReader = malloc(sizeof(TrackReader));
+    TrackReader *trackReader = safeMalloc(sizeof(TrackReader));
     trackReader->trackFileFormat = TRACK_MEMORY_COV;
     trackReader->fileReaderPtr = NULL;
     if (contigLengthTable != NULL) {
@@ -557,7 +557,7 @@ TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, 
 }
 
 TrackReader *TrackReader_construct(char *filePath, stHash *contigLengthTable, bool zeroBasedCoors) {
-    TrackReader *trackReader = malloc(sizeof(TrackReader));
+    TrackReader *trackReader = safeMalloc(sizeof(TrackReader));
     trackReader->trackFileFormat = TrackReader_getTrackFileFormat(filePath);
     trackReader->fileReaderPtr = TrackReader_openFile(filePath, trackReader->trackFileFormat);
     trackReader->contigLengthTable = contigLengthTable;
@@ -677,9 +677,9 @@ int TrackReader_readNextFromMemory(TrackReader *trackReader){
         trackReader->e = trackReader->zeroBasedCoors ? block->rfe : block->rfe + 1;
         CoverageInfo *coverageInfo = (CoverageInfo *) block->data;
         if (trackReader->attrbs == NULL) {
-            trackReader->attrbs = malloc(5 * sizeof(char *));
+            trackReader->attrbs = safeMalloc(5 * sizeof(char *));
             for (int i = 0; i < 5; i++) {
-                trackReader->attrbs[i] = malloc(200 * sizeof(char));
+                trackReader->attrbs[i] = safeMalloc(200 * sizeof(char));
             }
             trackReader->attrbsLen = 5;
         }
@@ -699,7 +699,7 @@ int TrackReader_readNextFromMemory(TrackReader *trackReader){
 }
 
 int TrackReader_readNextTrackBed(TrackReader *trackReader) {
-    char *line = malloc(LINE_MAX_SIZE);
+    char *line = safeMalloc(LINE_MAX_SIZE);
     ssize_t read = TrackReader_readLine(trackReader, &line, LINE_MAX_SIZE);
     // if this is the end of the file
     if (read == -1) {
@@ -751,12 +751,12 @@ int TrackReader_readNextTrackBed(TrackReader *trackReader) {
     while ((token = Splitter_getToken(splitter)) != NULL) {
         trackReader->attrbsLen += 1;
         if (trackReader->attrbsLen == 1) {
-            trackReader->attrbs = malloc(1 * sizeof(char *));
+            trackReader->attrbs = safeMalloc(1 * sizeof(char *));
         } else { // increase the size of the attrbs if there are more attrbs
-            trackReader->attrbs = realloc(trackReader->attrbs, trackReader->attrbsLen * sizeof(char *));
+            trackReader->attrbs = safeRealloc(trackReader->attrbs, trackReader->attrbsLen * sizeof(char *));
         }
         // save the currect attrb
-        trackReader->attrbs[trackReader->attrbsLen - 1] = malloc(strlen(token) + 1);
+        trackReader->attrbs[trackReader->attrbsLen - 1] = safeMalloc(strlen(token) + 1);
         strcpy(trackReader->attrbs[trackReader->attrbsLen - 1], token);
     }
     Splitter_destruct(splitter);
@@ -765,7 +765,7 @@ int TrackReader_readNextTrackBed(TrackReader *trackReader) {
 
 int TrackReader_readNextTrackCov(TrackReader *trackReader) {
 
-    char *line = malloc(LINE_MAX_SIZE);
+    char *line = safeMalloc(LINE_MAX_SIZE);
 
     ssize_t read = TrackReader_readLine(trackReader, &line, LINE_MAX_SIZE);
     // if this is the end of the file
@@ -818,12 +818,12 @@ int TrackReader_readNextTrackCov(TrackReader *trackReader) {
             //fprintf(stderr, "%s\n",token);
             trackReader->attrbsLen += 1;
             if (trackReader->attrbsLen == 1) {
-                trackReader->attrbs = malloc(1 * sizeof(char *));
+                trackReader->attrbs = safeMalloc(1 * sizeof(char *));
             } else {// increase the size of the attrbs if there is more attrbs
-                trackReader->attrbs = realloc(trackReader->attrbs, trackReader->attrbsLen * sizeof(char *));
+                trackReader->attrbs = safeRealloc(trackReader->attrbs, trackReader->attrbsLen * sizeof(char *));
             }
             // save the current attrb
-            trackReader->attrbs[trackReader->attrbsLen - 1] = malloc(strlen(token) + 1);
+            trackReader->attrbs[trackReader->attrbsLen - 1] = safeMalloc(strlen(token) + 1);
             strcpy(trackReader->attrbs[trackReader->attrbsLen - 1], token);
         }
         Splitter_destruct(splitter);

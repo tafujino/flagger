@@ -60,6 +60,10 @@ char *copyString(char *str);
 
 void removeSpacesInPlace(char *s);
 
+void *safeMalloc(size_t size);
+
+void *safeRealloc(void *ptr, size_t size);
+
 typedef struct Splitter {
     char *str;
     int offset;

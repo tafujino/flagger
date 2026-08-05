@@ -7,7 +7,7 @@
 #define MAX_NUMBER_OF_ANNOTATIONS 58
 
 ptBlock *ptBlock_construct(int rfs, int rfe, int sqs, int sqe, int rds_f, int rde_f) {
-    ptBlock *block = malloc(sizeof(ptBlock));
+    ptBlock *block = safeMalloc(sizeof(ptBlock));
     block->rfs = rfs;
     block->rfe = rfe;
     block->sqs = sqs;
@@ -149,7 +149,7 @@ CoverageInfo *CoverageInfo_construct(uint64_t annotation_flag,
                                      u_int16_t coverage,
                                      u_int16_t coverage_high_mapq,
                                      u_int16_t coverage_high_clip) {
-    CoverageInfo *cov_info = malloc(sizeof(CoverageInfo));
+    CoverageInfo *cov_info = safeMalloc(sizeof(CoverageInfo));
     cov_info->annotation_flag = annotation_flag;
     cov_info->coverage = coverage;
     cov_info->coverage_high_mapq = coverage_high_mapq;
@@ -167,7 +167,7 @@ void CoverageInfo_addInferenceData(CoverageInfo *cov_info,
     if (cov_info->data != NULL) {
         cov_info->destruct_data(cov_info->data);
     }
-    Inference *infer = malloc(sizeof(Inference));
+    Inference *infer = safeMalloc(sizeof(Inference));
     infer->truth = truth;
     infer->prediction = prediction;
     // set data
