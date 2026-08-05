@@ -31,7 +31,7 @@ TrackFileFormat TrackReader_getTrackFileFormat(char *filePath) {
     return trackFileFormat;
 }
 
-static void TrackReader_setCtg(TrackReader *trackReader, const char *ctgName) {
+void TrackReader_setCtg(TrackReader *trackReader, const char *ctgName) {
     size_t len = strlen(ctgName);
     if (sizeof(trackReader->ctg) <= len) {
         fprintf(stderr, "[Error] Contig name \"%s\" (%zu chars) does not fit in the %zu-byte buffer\n",

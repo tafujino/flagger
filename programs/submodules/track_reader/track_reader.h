@@ -90,6 +90,8 @@ void CoverageHeader_updateAverageAlignmentLength(CoverageHeader *header);
 
 void CoverageHeader_updateStartOnlyMode(CoverageHeader *header);
 
+void TrackReader_setCtg(TrackReader *trackReader, const char *ctgName);
+
 void *TrackReader_openFile(char *filePath, TrackFileFormat format);
 
 stList *TrackReader_parseHeaderLines(TrackReader *trackReader);

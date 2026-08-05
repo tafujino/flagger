@@ -2070,6 +2070,12 @@ stHash *ptBlock_parse_coverage_info_blocks(char *filePath) {
 }
 
 ptBlock *ptBlock_constructFromTrackReader(TrackReader *trackReader, CoverageHeader *header) {
+    if (trackReader->attrbsLen < 5) {
+        fprintf(stderr,
+                "[Error] Expected at least 5 attributes per coverage line (ctg=%s s=%d e=%d) but got %d\n",
+                trackReader->ctg, trackReader->s, trackReader->e, trackReader->attrbsLen);
+        exit(EXIT_FAILURE);
+    }
     // create a ptBlock based on the parsed track
     ptBlock *block = ptBlock_construct(trackReader->s, trackReader->e,
                                        -1, -1,

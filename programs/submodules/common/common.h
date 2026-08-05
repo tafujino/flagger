@@ -65,6 +65,7 @@ typedef struct Splitter {
     int offset;
     char *token;
     char delimiter;
+    bool finished;
 } Splitter;
 
 Splitter *Splitter_construct(char *str, char delimiter);

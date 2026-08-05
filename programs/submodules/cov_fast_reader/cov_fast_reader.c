@@ -94,7 +94,7 @@ void CovFastReaderPerThread_parseBlocks(void *arg_) {
     TrackReader_setFilePosition(trackReader, templateChunk->fileOffset);
 
     //set contig name
-    strcpy(trackReader->ctg, templateChunk->ctg);
+    TrackReader_setCtg(trackReader, templateChunk->ctg);
     trackReader->ctgLen = templateChunk->ctgLen;
 
     stList *blocks = NULL;

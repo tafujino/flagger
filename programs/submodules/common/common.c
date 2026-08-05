@@ -482,6 +482,7 @@ Splitter *Splitter_construct(char *str, char delimiter) {
     splitter->token = malloc((strlen(str) + 1) * sizeof(char));
     splitter->delimiter = delimiter;
     splitter->offset = 0;
+    splitter->finished = false;
     return splitter;
 }
 
@@ -492,6 +493,10 @@ void Splitter_destruct(Splitter *splitter) {
 }
 
 char *Splitter_getToken(Splitter *splitter) {
+    // a previous call already returned the last token (empty or not); nothing left
+    if (splitter->finished) {
+        return NULL;
+    }
     int i = splitter->offset;
     int j = 0;
     while (splitter->str[i] != '\0' && splitter->str[i] != splitter->delimiter) {
@@ -499,11 +504,18 @@ char *Splitter_getToken(Splitter *splitter) {
         j++;
         i++;
     }
-    splitter->offset = splitter->str[i] == splitter->delimiter ? i + 1 : i;
+    bool hitDelimiter = splitter->str[i] == splitter->delimiter;
+    splitter->offset = hitDelimiter ? i + 1 : i;
     splitter->token[j] = '\0';
-    if (j == 0) { // end of the string
-        free(splitter->token);
-        splitter->token = NULL;
+    // Mark as finished once we reach the true end of the string (no more
+    // delimiters ahead): either this token itself ran into the terminator,
+    // or the delimiter it just consumed was the string's very last
+    // character (a trailing delimiter with nothing after it). An empty
+    // token between two delimiters that still has real content afterward
+    // is a valid (empty) token, not the end of the string, and must still
+    // be returned on its own call.
+    if (!hitDelimiter || splitter->str[splitter->offset] == '\0') {
+        splitter->finished = true;
     }
     return splitter->token;
 }
