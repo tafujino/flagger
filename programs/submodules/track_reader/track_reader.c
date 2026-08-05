@@ -31,6 +31,16 @@ TrackFileFormat TrackReader_getTrackFileFormat(char *filePath) {
     return trackFileFormat;
 }
 
+static void TrackReader_setCtg(TrackReader *trackReader, const char *ctgName) {
+    size_t len = strlen(ctgName);
+    if (sizeof(trackReader->ctg) <= len) {
+        fprintf(stderr, "[Error] Contig name \"%s\" (%zu chars) does not fit in the %zu-byte buffer\n",
+                ctgName, len, sizeof(trackReader->ctg) - 1);
+        exit(EXIT_FAILURE);
+    }
+    strcpy(trackReader->ctg, ctgName);
+}
+
 stList *TrackReader_parseHeaderLines(TrackReader *trackReader) {
     stList *headerLines = stList_construct3(0, free);
     char *line = malloc(LINE_MAX_SIZE);
@@ -539,7 +549,7 @@ TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, 
     trackReader->coverageBlockTable = coverageBlockTable;
     trackReader->nextContigIndexToRead = 0;
     trackReader->nextBlockIndexToRead = 0;
-    strcpy(trackReader->ctg, (char *)stList_get(trackReader->contigList, trackReader->nextContigIndexToRead));
+    TrackReader_setCtg(trackReader, (char *)stList_get(trackReader->contigList, trackReader->nextContigIndexToRead));
     trackReader->coverageBlockListBeingIterated = (stList *) stHash_search(trackReader->coverageBlockTable, trackReader->ctg);
     int *ctgLenPtr = stHash_search(trackReader->contigLengthTable, trackReader->ctg);
     trackReader->ctgLen = *ctgLenPtr;
@@ -643,7 +653,7 @@ int TrackReader_readNextFromMemory(TrackReader *trackReader){
         trackReader->nextBlockIndexToRead = 0;
         if (trackReader->nextContigIndexToRead < stList_length(trackReader->contigList)) {
             // update contig name
-            strcpy(trackReader->ctg, (char *)stList_get(trackReader->contigList, trackReader->nextContigIndexToRead));
+            TrackReader_setCtg(trackReader, (char *)stList_get(trackReader->contigList, trackReader->nextContigIndexToRead));
             // update coverage block list
             trackReader->coverageBlockListBeingIterated = (stList *) stHash_search(trackReader->coverageBlockTable, trackReader->ctg);
             // update contig length
@@ -721,7 +731,7 @@ int TrackReader_readNextTrackBed(TrackReader *trackReader) {
 
     Splitter *splitter = Splitter_construct(line, '\t');
     token = Splitter_getToken(splitter);
-    strcpy(trackReader->ctg, token);
+    TrackReader_setCtg(trackReader, token);
 
     // get contig length of fai was available
     if (trackReader->contigLengthTable != NULL) {
@@ -792,7 +802,7 @@ int TrackReader_readNextTrackCov(TrackReader *trackReader) {
     if (line[0] == '>') { // contig name and size is after '>'
         Splitter *splitter = Splitter_construct(line, ' ');
         token = Splitter_getToken(splitter);
-        strcpy(trackReader->ctg, token + 1); // skip '>' and copy
+        TrackReader_setCtg(trackReader, token + 1); // skip '>' and copy
         token = Splitter_getToken(splitter);
         trackReader->ctgLen = atoi(token);
         Splitter_destruct(splitter);
