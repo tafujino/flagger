@@ -23,6 +23,16 @@ static const char *const LABEL_NAMES[] = {"Err",
 
 
 
+void Chunk_setCtg(Chunk *chunk, const char *ctgName) {
+    size_t len = strlen(ctgName);
+    if (sizeof(chunk->ctg) <= len) {
+        fprintf(stderr, "[Error] Contig name \"%s\" (%zu chars) does not fit in the %zu-byte buffer\n",
+                ctgName, len, sizeof(chunk->ctg) - 1);
+        exit(EXIT_FAILURE);
+    }
+    strcpy(chunk->ctg, ctgName);
+}
+
 Chunk *Chunk_construct(int chunkCanonicalLen) {
     Chunk *chunk = malloc(sizeof(Chunk));
     chunk->chunkCanonicalLen = chunkCanonicalLen;
@@ -260,7 +270,7 @@ stList *ChunksCreator_createCovIndex(char *filePath, char *faiPath, int chunkCan
             chunk = Chunk_construct(chunkCanonicalLen);
             chunk->s = 0;
             chunk->e = trackReader->ctgLen < 2 * chunkCanonicalLen ? trackReader->ctgLen - 1 : chunkCanonicalLen - 1;
-            strcpy(chunk->ctg, trackReader->ctg);
+            Chunk_setCtg(chunk, trackReader->ctg);
             chunk->ctgLen = trackReader->ctgLen;
             chunk->fileOffset = preFileOffset;
             stList_append(chunks, chunk);
@@ -275,7 +285,7 @@ stList *ChunksCreator_createCovIndex(char *filePath, char *faiPath, int chunkCan
             chunk->e =
                     trackReader->ctgLen < preChunk->e + 2 * chunkCanonicalLen ? trackReader->ctgLen - 1 : preChunk->e +
                                                                                                           chunkCanonicalLen;
-            strcpy(chunk->ctg, trackReader->ctg);
+            Chunk_setCtg(chunk, trackReader->ctg);
             chunk->ctgLen = trackReader->ctgLen;
             if (chunk->s <= trackReader->e)
                 chunk->fileOffset = preFileOffset;
@@ -334,7 +344,7 @@ stList *ChunksCreator_parseCovIndex(char *covIndexPath) {
         Chunk *templateChunk = Chunk_construct(chunkCanonicalLen);
         // contig name
         token = strtok(line, "\t");
-        strcpy(templateChunk->ctg, token);
+        Chunk_setCtg(templateChunk, token);
         // contig length
         token = strtok(NULL, "\t");
         templateChunk->ctgLen = atoi(token);
@@ -575,10 +585,15 @@ stList *Chunk_parseContigChunkListFromMemory(stHash* coverageBlockTable,
             // the chunk covers the whole contig
             chunk->s = 0; // 0-based
             chunk->e = trackReader->ctgLen - 1; //0-based
-            strcpy(chunk->ctg, trackReader->ctg);
+            Chunk_setCtg(chunk, trackReader->ctg);
             chunk->ctgLen = trackReader->ctgLen;
             stList_append(chunks, chunk);
             // update previous contig
+            if (sizeof(prevCtg) <= strlen(trackReader->ctg)) {
+                fprintf(stderr, "[Error] Contig name \"%s\" does not fit in the %zu-byte buffer\n",
+                        trackReader->ctg, sizeof(prevCtg) - 1);
+                exit(EXIT_FAILURE);
+            }
             strcpy(prevCtg, trackReader->ctg);
         }
         assert(0 < Chunk_addTrack(chunk, trackReader));
@@ -793,7 +808,7 @@ void ChunksCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char 
         Chunk *chunk = Chunk_constructWithAllocatedSeq(chunksCreator->chunkCanonicalLen, chunksCreator->windowLen,
                                                        seqLen);
         // set contig name
-        strcpy(chunk->ctg, ctg);
+        Chunk_setCtg(chunk, ctg);
         // set coordinates
         chunk->ctgLen = ctgLen;
         chunk->s = start;

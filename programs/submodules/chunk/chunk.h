@@ -53,6 +53,8 @@ typedef struct ChunksCreator {
 
 int Chunk_cmp(const void *chunk_1, const void *chunk2);
 
+void Chunk_setCtg(Chunk *chunk, const char *ctgName);
+
 Chunk *Chunk_construct(int chunkCanonicalLen);
 
 Chunk *Chunk_constructWithAllocatedSeq(int chunkCanonicalLen, int windowLen, int maxSeqSize);
