@@ -29,6 +29,11 @@ typedef struct TrackReader {
     int e; // 1-based (0-based if zeroBasedCoors in true)
     char **attrbs;
     int attrbsLen;
+    int attrbsCapacity; // number of allocated slots in attrbs/attrbSizes (>= attrbsLen); lets
+                         // TrackReader_readNextTrackCov/Bed reuse per-line buffers instead of
+                         // freeing and reallocating every attribute on every line
+    size_t *attrbSizes; // allocated byte capacity of each attrbs[i] buffer
+    char *lineBuf; // persistent line-read buffer reused by TrackReader_readNextTrackCov/Bed
     bool zeroBasedCoors;
     // attributes for iterating over coverage blocks in memory
     stList *contigList;

@@ -544,6 +544,9 @@ TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, 
     trackReader->e = -1;
     trackReader->attrbs = NULL;
     trackReader->attrbsLen = 0;
+    trackReader->attrbsCapacity = 0;
+    trackReader->attrbSizes = NULL;
+    trackReader->lineBuf = NULL; // reading from memory never reads lines from a file
     trackReader->zeroBasedCoors = zeroBasedCoors;
     trackReader->contigList = ptBlock_get_sorted_contig_list(coverageBlockTable);
     trackReader->coverageBlockTable = coverageBlockTable;
@@ -566,6 +569,9 @@ TrackReader *TrackReader_construct(char *filePath, stHash *contigLengthTable, bo
     trackReader->e = -1;
     trackReader->attrbs = NULL;
     trackReader->attrbsLen = 0;
+    trackReader->attrbsCapacity = 0;
+    trackReader->attrbSizes = NULL;
+    trackReader->lineBuf = safeMalloc(LINE_MAX_SIZE);
     trackReader->zeroBasedCoors = zeroBasedCoors;
     trackReader->coverageBlockTable = NULL;
     trackReader->nextContigIndexToRead = -1;
@@ -602,12 +608,20 @@ void TrackReader_setFilePosition(TrackReader *trackReader, int64_t filePosition)
 }
 
 void TrackReader_destruct(TrackReader *trackReader) {
-    // free trackReader attrbs
-    for (int i = 0; i < trackReader->attrbsLen; i++) {
+    // free trackReader attrbs; attrbsCapacity may exceed attrbsLen since
+    // TrackReader_readNextTrackCov/Bed reuse buffers across lines instead of
+    // freeing them down to the current line's actual attribute count
+    int attrbsAllocated = trackReader->attrbsCapacity > trackReader->attrbsLen
+                          ? trackReader->attrbsCapacity : trackReader->attrbsLen;
+    for (int i = 0; i < attrbsAllocated; i++) {
         free(trackReader->attrbs[i]);
     }
     free(trackReader->attrbs);
     trackReader->attrbs = NULL;
+    free(trackReader->attrbSizes);
+    trackReader->attrbSizes = NULL;
+    free(trackReader->lineBuf);
+    trackReader->lineBuf = NULL;
     // close file
     if (trackReader->trackFileFormat == TRACK_FILE_FORMAT_COV ||
         trackReader->trackFileFormat == TRACK_FILE_FORMAT_BED) {
@@ -698,15 +712,40 @@ int TrackReader_readNextFromMemory(TrackReader *trackReader){
     }
 }
 
+// Stores `token` at trackReader->attrbs[index], growing the attrbs/attrbSizes arrays and/or
+// the individual buffer only when the existing capacity is insufficient. This lets
+// TrackReader_readNextTrackCov/Bed reuse the same buffers across lines instead of freeing
+// and mallocing every attribute on every line (the previous per-line allocation pattern
+// churned through tens of millions of variable-sized mallocs/frees on full-genome inputs).
+static void TrackReader_setAttrb(TrackReader *trackReader, int index, const char *token) {
+    if (trackReader->attrbsCapacity <= index) {
+        int newCapacity = trackReader->attrbsCapacity == 0 ? 4 : trackReader->attrbsCapacity;
+        while (newCapacity <= index) newCapacity *= 2;
+        trackReader->attrbs = safeRealloc(trackReader->attrbs, newCapacity * sizeof(char *));
+        trackReader->attrbSizes = safeRealloc(trackReader->attrbSizes, newCapacity * sizeof(size_t));
+        for (int i = trackReader->attrbsCapacity; i < newCapacity; i++) {
+            trackReader->attrbs[i] = NULL;
+            trackReader->attrbSizes[i] = 0;
+        }
+        trackReader->attrbsCapacity = newCapacity;
+    }
+    size_t neededSize = strlen(token) + 1;
+    if (trackReader->attrbSizes[index] < neededSize) {
+        trackReader->attrbs[index] = safeRealloc(trackReader->attrbs[index], neededSize);
+        trackReader->attrbSizes[index] = neededSize;
+    }
+    strcpy(trackReader->attrbs[index], token);
+}
+
 int TrackReader_readNextTrackBed(TrackReader *trackReader) {
-    char *line = safeMalloc(LINE_MAX_SIZE);
+    char *line = trackReader->lineBuf;
     ssize_t read = TrackReader_readLine(trackReader, &line, LINE_MAX_SIZE);
+    trackReader->lineBuf = line; // TrackReader_readLine may realloc via getline for non-gz files
     // if this is the end of the file
     if (read == -1) {
         trackReader->ctg[0] = '\0';
         trackReader->s = -1;
         trackReader->e = -1;
-        free(line);
         return read;
     }
     char *token;
@@ -720,12 +759,7 @@ int TrackReader_readNextTrackBed(TrackReader *trackReader) {
     if (line[0] == '#') { // skip header lines
         return TrackReader_readNextTrackBed(trackReader);
     }
-    // free trackReader attrbs to fill it with new ones
-    for (int i = 0; i < trackReader->attrbsLen; i++) {
-        free(trackReader->attrbs[i]);
-    }
-    free(trackReader->attrbs);
-    trackReader->attrbs = NULL;
+    // reused buffers stay allocated across lines; only the logical count resets
     trackReader->attrbsLen = 0;
     trackReader->ctgLen = -1;
 
@@ -749,15 +783,8 @@ int TrackReader_readNextTrackBed(TrackReader *trackReader) {
     token = Splitter_getToken(splitter);
     trackReader->e = trackReader->zeroBasedCoors ? atoi(token) - 1 : atoi(token);
     while ((token = Splitter_getToken(splitter)) != NULL) {
+        TrackReader_setAttrb(trackReader, trackReader->attrbsLen, token);
         trackReader->attrbsLen += 1;
-        if (trackReader->attrbsLen == 1) {
-            trackReader->attrbs = safeMalloc(1 * sizeof(char *));
-        } else { // increase the size of the attrbs if there are more attrbs
-            trackReader->attrbs = safeRealloc(trackReader->attrbs, trackReader->attrbsLen * sizeof(char *));
-        }
-        // save the currect attrb
-        trackReader->attrbs[trackReader->attrbsLen - 1] = safeMalloc(strlen(token) + 1);
-        strcpy(trackReader->attrbs[trackReader->attrbsLen - 1], token);
     }
     Splitter_destruct(splitter);
     return read;
@@ -765,37 +792,30 @@ int TrackReader_readNextTrackBed(TrackReader *trackReader) {
 
 int TrackReader_readNextTrackCov(TrackReader *trackReader) {
 
-    char *line = safeMalloc(LINE_MAX_SIZE);
-
+    char *line = trackReader->lineBuf;
     ssize_t read = TrackReader_readLine(trackReader, &line, LINE_MAX_SIZE);
+    trackReader->lineBuf = line; // TrackReader_readLine may realloc via getline for non-gz files
+
     // if this is the end of the file
     if (read == -1) {
         trackReader->ctg[0] = '\0';
         trackReader->ctgLen = 0;
         trackReader->s = -1;
         trackReader->e = -1;
-        free(line);
         return read;
     }
 
     //fprintf(stderr,"%s\n", line);
     char *token;
-    // free trackReader attrbs to fill it with new ones
-    for (int i = 0; i < trackReader->attrbsLen; i++) {
-        free(trackReader->attrbs[i]);
-    }
-    free(trackReader->attrbs);
-    trackReader->attrbs = NULL;
+    // reused buffers stay allocated across lines; only the logical count resets
     trackReader->attrbsLen = 0;
 
     if (read == 0) {
         fprintf(stderr, "[Warning] line read by TrackReader was empty. Go to the next line!\n");
-        free(line);
         return TrackReader_readNextTrackCov(trackReader);
     }
 
     if (line[0] == '#') { // skip header lines
-	free(line);
         return TrackReader_readNextTrackCov(trackReader);
     }
 
@@ -806,7 +826,6 @@ int TrackReader_readNextTrackCov(TrackReader *trackReader) {
         token = Splitter_getToken(splitter);
         trackReader->ctgLen = atoi(token);
         Splitter_destruct(splitter);
-	free(line);
         return TrackReader_readNextTrackCov(trackReader);
     } else {
         Splitter *splitter = Splitter_construct(line, '\t');
@@ -816,18 +835,10 @@ int TrackReader_readNextTrackCov(TrackReader *trackReader) {
         trackReader->e = trackReader->zeroBasedCoors ? atoi(token) - 1 : atoi(token);
         while ((token = Splitter_getToken(splitter)) != NULL) {
             //fprintf(stderr, "%s\n",token);
+            TrackReader_setAttrb(trackReader, trackReader->attrbsLen, token);
             trackReader->attrbsLen += 1;
-            if (trackReader->attrbsLen == 1) {
-                trackReader->attrbs = safeMalloc(1 * sizeof(char *));
-            } else {// increase the size of the attrbs if there is more attrbs
-                trackReader->attrbs = safeRealloc(trackReader->attrbs, trackReader->attrbsLen * sizeof(char *));
-            }
-            // save the current attrb
-            trackReader->attrbs[trackReader->attrbsLen - 1] = safeMalloc(strlen(token) + 1);
-            strcpy(trackReader->attrbs[trackReader->attrbsLen - 1], token);
         }
         Splitter_destruct(splitter);
-	free(line);
-	return read;
+        return read;
     }
 }
