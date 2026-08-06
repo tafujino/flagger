@@ -934,12 +934,14 @@ void ptBlock_write_blocks_stHash_in_bed(stHash *blocks_per_contig,
         for (int i = 0; i < stList_length(blocks); i++) {
             ptBlock *block = stList_get(blocks, i);
             if (get_string_function != NULL) {
+                char *info_str = get_string_function((void *) block->data);
                 sprintf(line,
                         "%s\t%d\t%d\t%s\n",
                         ctg_name,
                         block->rfs,
                         block->rfe + 1,
-                        get_string_function((void *) block->data));
+                        info_str);
+                free(info_str);
             } else {
                 sprintf(line,
                         "%s\t%d\t%d\n",
@@ -1009,11 +1011,13 @@ void ptBlock_write_blocks_stHash_in_cov(stHash *blocks_per_contig,
         for (int i = 0; i < stList_length(blocks); i++) {
             ptBlock *block = stList_get(blocks, i);
             if (get_string_function != NULL) {
+                char *info_str = get_string_function((void *) block->data);
                 sprintf(line,
                         "%d\t%d\t%s\n",
                         block->rfs + 1, // start is 1-based in cov format
                         block->rfe + 1,
-                        get_string_function((void *) block->data));
+                        info_str);
+                free(info_str);
             } else { // warning: not having coverage is not meaningful when we want to write in cov format
                 sprintf(line,
                         "%d\t%d\n",
