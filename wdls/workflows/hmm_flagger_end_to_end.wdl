@@ -255,13 +255,15 @@ workflow HMMFlaggerEndToEnd{
                 refSDBed = SDBedToBeProjected,
                 refCntrBed = cntrBedToBeProjected,
                 refCntrCtBed = cntrCtBedToBeProjected,
+                flaggerDockerImage = flaggerDockerImage,
         }
     }
 
     if (enableDecomposingCntrBed && defined(cntrBed)){
         call decomposeCntrBed{
             input:
-                cntrBed = select_first([cntrBed])
+                cntrBed = select_first([cntrBed]),
+                dockerImage = flaggerDockerImage,
         }
     }
 
@@ -367,7 +369,8 @@ workflow HMMFlaggerEndToEnd{
             input:
                 bed = select_first([truthBedForMisassemblies]),
                 canonicalBasesDiploidBed = dipCanonical.canonicalBasesBed,
-                addHapCoordinates = true
+                addHapCoordinates = true,
+                dockerImage = flaggerDockerImage,
         }
     }
 
@@ -375,7 +378,8 @@ workflow HMMFlaggerEndToEnd{
     # state indices instead of the names of the states
     call misc_t.getIndexLabeledBed as labelPrediction{
         input:
-            bed = hmmFlagger.predictionBed
+            bed = hmmFlagger.predictionBed,
+            dockerImage = flaggerDockerImage,
     }
 
     # Augment coverage file with prediction labels
@@ -422,7 +426,8 @@ workflow HMMFlaggerEndToEnd{
         # for conservative calls
         call misc_t.getIndexLabeledBed as labelPredictionConservative{
             input:
-                bed = filterCalls.conservativeBed
+                bed = filterCalls.conservativeBed,
+                dockerImage = flaggerDockerImage,
         }
 
         # Augment coverage file with prediction labels

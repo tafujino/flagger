@@ -21,6 +21,7 @@ workflow runProjectBlocksForFlagger{
         Int mergingMargin = 100000 # merge projected blocks closer than 100kb
         String zones = "use-west2-a"
         Int preemptible = 2
+        String flaggerDockerImage = "mobinasri/flagger:v1.2.0"
     }
 
 
@@ -61,6 +62,7 @@ workflow runProjectBlocksForFlagger{
                 mergingMargin = mergingMargin,
                 isAssemblySplit = isAssemblySplit,
                 memSize = 32,
+                dockerImage = flaggerDockerImage,
         }
     }
 
@@ -76,9 +78,10 @@ workflow runProjectBlocksForFlagger{
                 mergingMargin = 1,
                 isAssemblySplit = isAssemblySplit,
                 memSize = 32,
+                dockerImage = flaggerDockerImage,
         }
     }
-    
+
     if (defined(refSexBed)){
         # Project Sex blocks
         call project_blocks_t.project as projectSex{
@@ -90,9 +93,10 @@ workflow runProjectBlocksForFlagger{
                 mode = "ref2asm",
                 mergingMargin = 1,
                 isAssemblySplit = isAssemblySplit,
+                dockerImage = flaggerDockerImage,
         }
     }
-    
+
     if (defined(refCntrBed)){
         # Project Cntr blocks
         call project_blocks_t.project as projectCntr{
@@ -104,6 +108,7 @@ workflow runProjectBlocksForFlagger{
                 mode = "ref2asm",
                 mergingMargin = 50000,
                 isAssemblySplit = isAssemblySplit,
+                dockerImage = flaggerDockerImage,
         }
     }
 
@@ -118,9 +123,10 @@ workflow runProjectBlocksForFlagger{
                 mode = "ref2asm",
                 mergingMargin = 50000,
                 isAssemblySplit = isAssemblySplit,
+                dockerImage = flaggerDockerImage,
         }
     }
-    
+
     scatter (bed_additional in additionalBedArray) {
         String bed_suffix_additional = basename(bed_additional, ".bed")
         call project_blocks_t.project as projectAdditional{
@@ -133,6 +139,7 @@ workflow runProjectBlocksForFlagger{
                 mergingMargin = 1,
                 isAssemblySplit = isAssemblySplit,
                 memSize = 32,
+                dockerImage = flaggerDockerImage,
        }
     }
 
