@@ -93,6 +93,7 @@ workflow runProjectBlocksForFlagger{
                 mode = "ref2asm",
                 mergingMargin = 1,
                 isAssemblySplit = isAssemblySplit,
+                memSize = 32,
                 dockerImage = flaggerDockerImage,
         }
     }
@@ -108,6 +109,7 @@ workflow runProjectBlocksForFlagger{
                 mode = "ref2asm",
                 mergingMargin = 50000,
                 isAssemblySplit = isAssemblySplit,
+                memSize = 32,
                 dockerImage = flaggerDockerImage,
         }
     }
@@ -123,6 +125,7 @@ workflow runProjectBlocksForFlagger{
                 mode = "ref2asm",
                 mergingMargin = 50000,
                 isAssemblySplit = isAssemblySplit,
+                memSize = 32,
                 dockerImage = flaggerDockerImage,
         }
     }
